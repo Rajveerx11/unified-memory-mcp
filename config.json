@@ -20,5 +20,7 @@
     }
   },
   "watchEnabled": true,
-  "processOnStartup": true
+  "processOnStartup": true,
+  "httpBridgeEnabled": true,
+  "httpBridgePort": 3001
 }

@@ -9,6 +9,7 @@ import { scanObsidianVault } from "./parsers/obsidian-parser.js";
 import { scanMemoryExports } from "./parsers/memory-parser.js";
 import { Watcher } from "./watcher.js";
 import { startMcpServer, RunningServer } from "./server.js";
+import { startHttpBridge, RunningHttpBridge } from "./http-bridge.js";
 import { pathExists, listDir } from "./utils/helpers.js";
 import { llmRegistry } from "./llm/index.js";
 import { runtime } from "./runtime.js";
@@ -79,6 +80,7 @@ async function printStartupHealth(config: Config): Promise<void> {
     : `${provStatus.kind} (${provStatus.model})${provStatus.kind === "ollama" ? " — local" : ""}`;
   logger.info("startup", `LLM provider:      ${provLabel}`);
   logger.info("startup", `File watchers:     ${config.watchEnabled ? "active (3 sources)" : "disabled"}`);
+  logger.info("startup", `HTTP bridge:       ${config.httpBridgeEnabled ? `active on http://localhost:${config.httpBridgePort}` : "disabled"}`);
   logger.info("startup", line);
   logger.info("startup", "MCP server ready on stdio. Waiting for connections...");
 }
@@ -109,6 +111,10 @@ async function main(): Promise<void> {
 
   watcher.start();
   const server: RunningServer = await startMcpServer();
+  const bridge: RunningHttpBridge | null = startHttpBridge(config);
+  if (bridge) {
+    logger.info("index", `HTTP bridge listening on http://localhost:${bridge.port}`);
+  }
   await printStartupHealth(config);
 
   let shuttingDown = false;
@@ -119,6 +125,7 @@ async function main(): Promise<void> {
     try {
       await watcher.closeAll();
       await dataStore.flush();
+      if (bridge) await bridge.close();
       await server.close();
       await logger.close();
     } catch (err: any) {

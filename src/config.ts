@@ -32,6 +32,8 @@ const ConfigSchema = z.object({
   llm: LLMSchema,
   watchEnabled: z.boolean().default(true),
   processOnStartup: z.boolean().default(true),
+  httpBridgeEnabled: z.boolean().default(true),
+  httpBridgePort: z.number().int().min(1).max(65535).default(3001),
 });
 
 type ConfigInput = z.infer<typeof ConfigSchema>;
@@ -97,6 +99,8 @@ export async function loadConfig(configPath: string): Promise<Config> {
     archivePath,
     watchEnabled: parsed.watchEnabled,
     processOnStartup: parsed.processOnStartup,
+    httpBridgeEnabled: parsed.httpBridgeEnabled,
+    httpBridgePort: parsed.httpBridgePort,
     logsPath: path.join(secondBrainRoot, "logs"),
     llm: {
       provider: parsed.llm.provider,
