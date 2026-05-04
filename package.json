@@ -1,0 +1,26 @@
+{
+  "name": "secondbrainmcp",
+  "version": "1.0.0",
+  "description": "Local stdio MCP server that ingests Claude.ai memory exports, Claude Code session logs, and an Obsidian vault, runs an AI synthesis layer over them, and exposes second-brain tools.",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "adm-zip": "^0.5.16",
+    "chokidar": "^4.0.1",
+    "glob": "^11.0.0",
+    "gray-matter": "^4.0.3",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  }
+}

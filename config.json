@@ -1,0 +1,24 @@
+{
+  "memoryExportPath": "C:/Users/rajve/SecondBrain/memory-exports",
+  "claudeCodeLogsPath": "C:/Users/rajve/.claude/projects",
+  "obsidianVaultPath": "C:/Users/rajve/ObsidianVault",
+  "archivePath": "C:/Users/rajve/SecondBrain/archive",
+  "llm": {
+    "provider": "ollama",
+    "ollama": {
+      "baseUrl": "http://localhost:11434",
+      "model": "gemma4:27b",
+      "contextWindow": 131072,
+      "temperature": 0.3,
+      "timeout": 120000
+    },
+    "anthropic": {
+      "apiKey": "env:ANTHROPIC_API_KEY",
+      "model": "claude-sonnet-4-6",
+      "maxTokens": 8000,
+      "temperature": 0.3
+    }
+  },
+  "watchEnabled": true,
+  "processOnStartup": true
+}
