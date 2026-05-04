@@ -159,15 +159,19 @@ Restart Claude Desktop. The nine tools should appear under the secondbrain serve
 Alongside the MCP stdio interface, the server exposes a small read-only JSON API on `http://localhost:3001` so a browser-based dashboard can fetch the same data the MCP tools return:
 
 ```
-GET /api/dashboard       projects + todos + insights + weekly summary
-GET /api/projects        get_projects output
-GET /api/todos           get_todos output
-GET /api/insights        get_insights output
-GET /api/patterns        get_thinking_patterns output
-GET /api/summary         get_weekly_summary output
-GET /api/search?q=...    search_brain output
-GET /api/status          get_brain_status output
+GET  /api/dashboard            projects + todos + insights + weekly summary
+GET  /api/projects             get_projects output
+GET  /api/todos                get_todos output
+GET  /api/insights             get_insights output
+GET  /api/patterns             get_thinking_patterns output
+GET  /api/summary              get_weekly_summary output
+GET  /api/search?q=...         search_brain output
+GET  /api/status               get_brain_status output
+GET  /api/providers            list providers + active + per-kind model + keyPresent flags
+POST /api/provider/switch      body { provider, model? } — switches active LLM
 ```
+
+The `providers` + `provider/switch` endpoints back a dashboard dropdown that lets the user pick local Ollama, Ollama Cloud, or Anthropic at runtime. `GET /api/providers` returns enough for the dashboard to render the menu (label, configured model, whether the required API key is present); `POST /api/provider/switch` swaps the active backend and returns 200 on success or 409 with a reason (e.g. missing API key, model not pulled). Provider routes are not gated by the `initializing` 202 response, so the dashboard can switch backends before the first scan finishes.
 
 CORS is open to `http://localhost:3000`. While the data store is empty (first scan still running) endpoints return `202` with `{ status: "initializing" }`. Disable with `"httpBridgeEnabled": false` or change the port via `"httpBridgePort"` in `config.json`.
 
