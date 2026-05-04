@@ -7,8 +7,15 @@
     "provider": "ollama",
     "ollama": {
       "baseUrl": "http://localhost:11434",
-      "model": "gemma4:27b",
+      "model": "gemma4:e4b",
       "contextWindow": 131072,
+      "temperature": 0.3,
+      "timeout": 120000
+    },
+    "ollamaCloud": {
+      "baseUrl": "https://ollama.com",
+      "apiKey": "env:OLLAMA_API_KEY",
+      "model": "gpt-oss:120b",
       "temperature": 0.3,
       "timeout": 120000
     },

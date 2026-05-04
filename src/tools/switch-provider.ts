@@ -6,10 +6,10 @@ export const switchProviderTool = {
   description:
     "Switch the active LLM provider at runtime. Changes take effect immediately for the next thinking layer run. Does not persist to config.json — restart reverts to config default.",
   inputSchema: {
-    provider: z.enum(["ollama", "anthropic"]),
+    provider: z.enum(["ollama", "ollama-cloud", "anthropic"]),
     model: z.string().optional().describe("Optional model override (otherwise uses config model for that provider)"),
   },
-  handler: async (args: { provider: "ollama" | "anthropic"; model?: string }) => {
+  handler: async (args: { provider: "ollama" | "ollama-cloud" | "anthropic"; model?: string }) => {
     const result = await llmRegistry.switchTo(args.provider, args.model);
     return {
       content: [{

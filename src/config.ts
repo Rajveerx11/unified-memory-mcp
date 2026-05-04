@@ -5,8 +5,16 @@ import * as z from "zod/v4";
 
 const OllamaSchema = z.object({
   baseUrl: z.string().default("http://localhost:11434"),
-  model: z.string().default("gemma4:27b"),
+  model: z.string().default("gemma4:e4b"),
   contextWindow: z.number().int().positive().default(131072),
+  temperature: z.number().min(0).max(2).default(0.3),
+  timeout: z.number().int().positive().default(120000),
+});
+
+const OllamaCloudSchema = z.object({
+  baseUrl: z.string().default("https://ollama.com"),
+  apiKey: z.string().default("env:OLLAMA_API_KEY"),
+  model: z.string().default("gpt-oss:120b"),
   temperature: z.number().min(0).max(2).default(0.3),
   timeout: z.number().int().positive().default(120000),
 });
@@ -19,8 +27,9 @@ const AnthropicSchema = z.object({
 });
 
 const LLMSchema = z.object({
-  provider: z.enum(["ollama", "anthropic"]).default("anthropic"),
+  provider: z.enum(["ollama", "ollama-cloud", "anthropic"]).default("ollama"),
   ollama: OllamaSchema.optional(),
+  ollamaCloud: OllamaCloudSchema.optional(),
   anthropic: AnthropicSchema.optional(),
 });
 
@@ -41,8 +50,9 @@ type ConfigInput = z.infer<typeof ConfigSchema>;
 export interface Config extends Omit<ConfigInput, "llm"> {
   logsPath: string;
   llm: {
-    provider: "ollama" | "anthropic";
+    provider: "ollama" | "ollama-cloud" | "anthropic";
     ollama: z.infer<typeof OllamaSchema>;
+    ollamaCloud: z.infer<typeof OllamaCloudSchema> & { resolvedApiKey: string | null };
     anthropic: z.infer<typeof AnthropicSchema> & { resolvedApiKey: string | null };
   };
 }
@@ -69,8 +79,16 @@ function resolveApiKey(value: string): string | null {
 
 const DEFAULT_OLLAMA = {
   baseUrl: "http://localhost:11434",
-  model: "gemma4:27b",
+  model: "gemma4:e4b",
   contextWindow: 131072,
+  temperature: 0.3,
+  timeout: 120000,
+};
+
+const DEFAULT_OLLAMA_CLOUD = {
+  baseUrl: "https://ollama.com",
+  apiKey: "env:OLLAMA_API_KEY",
+  model: "gpt-oss:120b",
   temperature: 0.3,
   timeout: 120000,
 };
@@ -90,6 +108,7 @@ export async function loadConfig(configPath: string): Promise<Config> {
   const secondBrainRoot = path.dirname(archivePath);
 
   const ollama = parsed.llm.ollama ?? DEFAULT_OLLAMA;
+  const ollamaCloud = parsed.llm.ollamaCloud ?? DEFAULT_OLLAMA_CLOUD;
   const anthropic = parsed.llm.anthropic ?? DEFAULT_ANTHROPIC;
 
   const config: Config = {
@@ -105,6 +124,10 @@ export async function loadConfig(configPath: string): Promise<Config> {
     llm: {
       provider: parsed.llm.provider,
       ollama,
+      ollamaCloud: {
+        ...ollamaCloud,
+        resolvedApiKey: resolveApiKey(ollamaCloud.apiKey),
+      },
       anthropic: {
         ...anthropic,
         resolvedApiKey: resolveApiKey(anthropic.apiKey),

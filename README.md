@@ -24,15 +24,28 @@ All return JSON in MCP `text` content.
 
 ## LLM Providers
 
-The synthesis layer supports two backends. Configure in `config.json` under `llm`:
+The synthesis layer supports three backends:
+
+- **`ollama`** — local, free, private (default). Talks to a running Ollama daemon at `http://localhost:11434/v1/chat/completions` (OpenAI-compatible).
+- **`ollama-cloud`** — Ollama's hosted API at `https://ollama.com/v1/chat/completions`. Same OpenAI-compatible shape; bigger models, no local GPU needed. Requires an API key.
+- **`anthropic`** — Claude API. Requires `ANTHROPIC_API_KEY`.
+
+If the configured provider is unavailable on startup the server **falls back** through the others in order, then to a noop (raw data only, no synthesis). `switch_provider` swaps the active backend at runtime.
 
 ```json
 "llm": {
   "provider": "ollama",
   "ollama": {
     "baseUrl": "http://localhost:11434",
-    "model": "gemma4:27b",
+    "model": "gemma4:e4b",
     "contextWindow": 131072,
+    "temperature": 0.3,
+    "timeout": 120000
+  },
+  "ollamaCloud": {
+    "baseUrl": "https://ollama.com",
+    "apiKey": "env:OLLAMA_API_KEY",
+    "model": "gpt-oss:120b",
     "temperature": 0.3,
     "timeout": 120000
   },
@@ -52,32 +65,44 @@ The synthesis layer supports two backends. Configure in `config.json` under `llm
 - If neither is available, the server still runs — tools just return raw parsed data with no AI synthesis.
 - `switch_provider` swaps the active backend at runtime (in memory only — restart reverts to config default).
 
-### Ollama setup (local, free, private)
+### Ollama setup (default — local, free, private)
 
 1. Install Ollama: <https://ollama.com>
-2. Pull a model: `ollama pull gemma4:27b`
+2. Pull the configured model: `ollama pull gemma4:e4b`
 3. Make sure Ollama is running (`ollama serve` or its tray app).
-4. Set `llm.provider: "ollama"` in `config.json`.
+4. `llm.provider: "ollama"` is the default — no further config needed.
 
 ### Recommended Ollama models
 
-| Model | VRAM (rough) | Quality for this task | Speed |
-|-------|--------------|-----------------------|-------|
-| `gemma4:31b` | ~20 GB | Best open-source option, strong structured output | Slow |
-| `gemma4:26b` | ~16 GB | MoE variant, efficient, good reasoning | Medium |
-| `qwen2.5:14b` | ~10 GB | Strong instruction-following, good JSON output | Fast |
-| `gemma4:e4b` | ~4 GB | Lightweight, decent for simple summaries | Very fast |
-| `llama3.1:8b` | ~6 GB | Decent baseline, weaker at complex JSON | Fast |
-
-VRAM estimates assume Q4 quantization; actual usage depends on your model tag.
+| Model | Disk (Q4) | Quality for this task | Speed |
+|-------|-----------|-----------------------|-------|
+| `gemma4:e4b` (4.5B effective) | ~9.6 GB | Default. Strong JSON output, edge-friendly | Fast |
+| `gemma4:latest` (8B) | ~9.6 GB | Strong structured output | Fast |
+| `qwen2.5:14b` | ~10 GB | Strongest instruction-following at this size | Medium |
+| `qwen2.5:7b` | ~5 GB | Fast, decent JSON | Fast |
+| `llama3.1:8b` | ~5 GB | Lightweight baseline, weaker at complex JSON | Fast |
 
 If the configured Ollama model isn't pulled yet, the server logs:
 ```
-Model 'gemma4:27b' not found in Ollama. Run: ollama pull gemma4:27b
+Model 'gemma4:e4b' not found in Ollama. Run: ollama pull gemma4:e4b
 ```
-and falls back to the Anthropic provider.
+and falls back to the next provider in the chain.
 
-### Anthropic setup (cloud, paid)
+### Ollama Cloud setup (cloud-hosted, paid)
+
+Cloud-hosted Ollama runs the same OpenAI-compatible endpoints as a local daemon, just with a different base URL and bearer-token auth. Useful when the local machine can't host the model size you want.
+
+1. Create an API key at <https://ollama.com/settings/keys>
+2. Set the env var:
+   ```powershell
+   [Environment]::SetEnvironmentVariable("OLLAMA_API_KEY", "your-key-here", "User")
+   ```
+3. Pick a cloud-hosted model from <https://ollama.com/search?c=cloud> (e.g. `gpt-oss:120b`, `qwen3-coder:480b-cloud`, `deepseek-v3.1:671b-cloud`) and set it under `llm.ollamaCloud.model`.
+4. Set `llm.provider: "ollama-cloud"` (or leave on `"ollama"` and use `switch_provider` at runtime).
+
+The cloud provider hits `https://ollama.com/v1/chat/completions` with `Authorization: Bearer $OLLAMA_API_KEY`. No additional dependencies — same `fetch` path the local provider uses.
+
+### Anthropic setup (optional fallback — cloud, paid)
 
 ```powershell
 [Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", "sk-ant-...", "User")
@@ -128,6 +153,23 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json`:
 ```
 
 Restart Claude Desktop. The nine tools should appear under the secondbrain server.
+
+## HTTP bridge (for browser dashboards)
+
+Alongside the MCP stdio interface, the server exposes a small read-only JSON API on `http://localhost:3001` so a browser-based dashboard can fetch the same data the MCP tools return:
+
+```
+GET /api/dashboard       projects + todos + insights + weekly summary
+GET /api/projects        get_projects output
+GET /api/todos           get_todos output
+GET /api/insights        get_insights output
+GET /api/patterns        get_thinking_patterns output
+GET /api/summary         get_weekly_summary output
+GET /api/search?q=...    search_brain output
+GET /api/status          get_brain_status output
+```
+
+CORS is open to `http://localhost:3000`. While the data store is empty (first scan still running) endpoints return `202` with `{ status: "initializing" }`. Disable with `"httpBridgeEnabled": false` or change the port via `"httpBridgePort"` in `config.json`.
 
 ## Logs and state
 

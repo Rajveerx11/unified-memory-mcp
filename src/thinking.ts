@@ -18,58 +18,80 @@ function tierAndTrim(state: BrainState): AggregatedInput {
   const fourteenDays = now - 14 * DAY_MS;
   const thirtyDays = now - 30 * DAY_MS;
 
-  const ccRecent: any[] = [];
-  const ccMid: any[] = [];
-  for (const s of state.rawSources.claudeCode) {
-    const t = s.lastTimestamp ? Date.parse(s.lastTimestamp) : Date.parse(s.fileMtime);
-    const turns = s.turns.map((t2) => `${t2.role}: ${t2.text}`).join("\n");
-    const full = { project: s.project, sessionId: s.sessionId, lastTimestamp: s.lastTimestamp, turns };
-    if (t >= sevenDays) ccRecent.push(full);
-    else if (t >= thirtyDays) ccMid.push({ project: s.project, sessionId: s.sessionId, lastTimestamp: s.lastTimestamp, snippet: turns.slice(0, 200) });
-  }
+  const out: {
+    memory: unknown[];
+    claudeCodeRecent: unknown[];
+    obsidianRecent: unknown[];
+    claudeCodeMid: unknown[];
+    obsidianOld: unknown[];
+  } = {
+    memory: [],
+    claudeCodeRecent: [],
+    obsidianRecent: [],
+    claudeCodeMid: [],
+    obsidianOld: [],
+  };
 
-  const obFull: any[] = [];
-  const obShort: any[] = [];
-  for (const n of state.rawSources.obsidian) {
-    const t = Date.parse(n.modified);
-    if (t >= fourteenDays) {
-      obFull.push({ path: n.path, title: n.title, tags: n.tags, todos: n.todos, content: n.fullText });
-    } else {
-      obShort.push({ path: n.path, title: n.title, tags: n.tags, snippet: n.fullText.slice(0, 100) });
-    }
-  }
-
-  const memory = state.rawSources.memory.map((m) => ({
-    source: m.source,
-    conversations: m.conversations,
-    raw: m.raw,
-  }));
-
-  const tiers = [
-    { name: "memory", data: memory },
-    { name: "claudeCodeRecent", data: ccRecent },
-    { name: "obsidianRecent", data: obFull },
-    { name: "claudeCodeMid", data: ccMid },
-    { name: "obsidianOld", data: obShort },
-  ];
-
+  let used = 2;
   let truncated = false;
-  let payload: Record<string, unknown> = {};
-  for (let i = tiers.length; i > 0; i--) {
-    payload = {};
-    for (let j = 0; j < i; j++) {
-      payload[tiers[j].name] = tiers[j].data;
+  let dropped = 0;
+
+  const tryAdd = (bucket: keyof typeof out, item: unknown): boolean => {
+    const sz = JSON.stringify(item).length + 1;
+    if (used + sz > MAX_THINKING_INPUT_CHARS) {
+      truncated = true;
+      dropped++;
+      return false;
     }
-    const text = JSON.stringify(payload);
-    if (text.length <= MAX_THINKING_INPUT_CHARS || i === 1) {
-      truncated = i < tiers.length;
-      if (truncated) {
-        logger.warn("thinking", `input truncated, kept ${i}/${tiers.length} tiers (${text.length} chars)`);
-      }
-      return { truncated, payload: text };
+    out[bucket].push(item);
+    used += sz;
+    return true;
+  };
+
+  for (const m of state.rawSources.memory) {
+    tryAdd("memory", { source: m.source, conversations: m.conversations, raw: m.raw });
+  }
+
+  const ccSorted = [...state.rawSources.claudeCode]
+    .map((s) => ({ s, t: s.lastTimestamp ? Date.parse(s.lastTimestamp) : Date.parse(s.fileMtime) }))
+    .sort((a, b) => b.t - a.t);
+
+  for (const { s, t } of ccSorted) {
+    const turns = s.turns.map((x) => `${x.role}: ${x.text}`).join("\n");
+    if (t >= sevenDays) {
+      const full = { project: s.project, sessionId: s.sessionId, lastTimestamp: s.lastTimestamp, turns };
+      if (tryAdd("claudeCodeRecent", full)) continue;
+      const snippet = { project: s.project, sessionId: s.sessionId, lastTimestamp: s.lastTimestamp, snippet: turns.slice(0, 2000) };
+      tryAdd("claudeCodeRecent", snippet);
+    } else if (t >= thirtyDays) {
+      const snippet = { project: s.project, sessionId: s.sessionId, lastTimestamp: s.lastTimestamp, snippet: turns.slice(0, 400) };
+      tryAdd("claudeCodeMid", snippet);
     }
   }
-  return { truncated: true, payload: JSON.stringify(payload).slice(0, MAX_THINKING_INPUT_CHARS) };
+
+  const obSorted = [...state.rawSources.obsidian]
+    .map((n) => ({ n, t: Date.parse(n.modified) }))
+    .sort((a, b) => b.t - a.t);
+
+  for (const { n, t } of obSorted) {
+    if (t >= fourteenDays) {
+      const full = { path: n.path, title: n.title, tags: n.tags, todos: n.todos, content: n.fullText };
+      if (tryAdd("obsidianRecent", full)) continue;
+      const snippet = { path: n.path, title: n.title, tags: n.tags, todos: n.todos, snippet: n.fullText.slice(0, 1000) };
+      tryAdd("obsidianRecent", snippet);
+    } else {
+      tryAdd("obsidianOld", { path: n.path, title: n.title, tags: n.tags, snippet: n.fullText.slice(0, 200) });
+    }
+  }
+
+  if (truncated) {
+    logger.warn(
+      "thinking",
+      `input truncated to ${used} chars, ${dropped} item(s) shrunk or dropped to fit ${MAX_THINKING_INPUT_CHARS} budget`,
+    );
+  }
+
+  return { truncated, payload: JSON.stringify(out) };
 }
 
 const EXAMPLE_OUTPUT = `{

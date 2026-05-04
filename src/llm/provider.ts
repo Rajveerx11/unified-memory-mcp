@@ -1,5 +1,5 @@
 export interface LLMProvider {
-  readonly kind: "ollama" | "anthropic" | "noop";
+  readonly kind: "ollama" | "ollama-cloud" | "anthropic" | "noop";
   readonly model: string;
   generate(systemPrompt: string, userPrompt: string): Promise<string>;
   isAvailable(): Promise<{ ok: true } | { ok: false; reason: string }>;

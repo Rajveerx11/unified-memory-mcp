@@ -2,9 +2,16 @@ import { logger } from "../logger.js";
 import { Config } from "../config.js";
 import { LLMProvider, NoopProvider } from "./provider.js";
 import { OllamaProvider } from "./ollama-provider.js";
+import { OllamaCloudProvider } from "./ollama-cloud-provider.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
 
-export type ProviderKind = "ollama" | "anthropic";
+export type ProviderKind = "ollama" | "ollama-cloud" | "anthropic";
+
+const ALL_KINDS: ProviderKind[] = ["ollama", "ollama-cloud", "anthropic"];
+
+function localTag(kind: string): string {
+  return kind === "ollama" ? " — local" : kind === "ollama-cloud" ? " — cloud" : "";
+}
 
 class LLMRegistry {
   private active: LLMProvider = new NoopProvider();
@@ -15,32 +22,31 @@ class LLMRegistry {
   async init(config: Config): Promise<LLMProvider> {
     this.config = config;
     const preferred = config.llm.provider;
-    const fallback: ProviderKind = preferred === "ollama" ? "anthropic" : "ollama";
+    const order: ProviderKind[] = [preferred, ...ALL_KINDS.filter((k) => k !== preferred)];
 
-    const primary = this.build(preferred, undefined);
-    const primaryCheck = await primary.isAvailable();
-    if (primaryCheck.ok) {
-      this.active = primary;
-      this.lastSwitchAt = new Date().toISOString();
-      this.lastSwitchReason = "config default";
-      logger.info("llm", `LLM Provider: ${primary.kind} (${primary.model})${primary.kind === "ollama" ? " — local" : ""}`);
-      return primary;
+    let firstReason: string | null = null;
+    let firstKind: ProviderKind | null = null;
+    for (const kind of order) {
+      const p = this.build(kind, undefined);
+      const check = await p.isAvailable();
+      if (check.ok) {
+        this.active = p;
+        this.lastSwitchAt = new Date().toISOString();
+        this.lastSwitchReason = kind === preferred
+          ? "config default"
+          : `fallback from ${firstKind} (${firstReason})`;
+        logger.info("llm", `LLM Provider: ${p.kind} (${p.model})${localTag(p.kind)}`);
+        return p;
+      }
+      logger.warn("llm", `${p.kind} not available: ${check.reason}`);
+      if (firstReason === null) {
+        firstReason = check.reason;
+        firstKind = kind;
+      }
+      const next = order[order.indexOf(kind) + 1];
+      if (next) logger.warn("llm", `falling back to ${next}`);
     }
 
-    logger.warn("llm", `${primary.kind} not available: ${primaryCheck.reason}`);
-    logger.warn("llm", `falling back to ${fallback}`);
-
-    const second = this.build(fallback, undefined);
-    const secondCheck = await second.isAvailable();
-    if (secondCheck.ok) {
-      this.active = second;
-      this.lastSwitchAt = new Date().toISOString();
-      this.lastSwitchReason = `fallback from ${primary.kind} (${primaryCheck.reason})`;
-      logger.info("llm", `LLM Provider: ${second.kind} (${second.model})${second.kind === "ollama" ? " — local" : ""}`);
-      return second;
-    }
-
-    logger.warn("llm", `${second.kind} also unavailable: ${secondCheck.reason}`);
     logger.warn("llm", "no LLM provider available — synthesis disabled, raw data still served");
     this.active = new NoopProvider();
     this.lastSwitchAt = new Date().toISOString();
@@ -56,6 +62,16 @@ class LLMRegistry {
         baseUrl: c.baseUrl,
         model: modelOverride ?? c.model,
         contextWindow: c.contextWindow,
+        temperature: c.temperature,
+        timeout: c.timeout,
+      });
+    }
+    if (kind === "ollama-cloud") {
+      const c = this.config.llm.ollamaCloud;
+      return new OllamaCloudProvider({
+        baseUrl: c.baseUrl,
+        apiKey: c.resolvedApiKey ?? "",
+        model: modelOverride ?? c.model,
         temperature: c.temperature,
         timeout: c.timeout,
       });
