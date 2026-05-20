@@ -1,0 +1,16 @@
+# Normalize all text files to LF in the repo regardless of the user's
+# core.autocrlf setting. Prettier is configured with endOfLine: "lf", so
+# CRLF in the working copy on Windows would otherwise fail format:check
+# in CI on windows-latest runners.
+* text=auto eol=lf
+
+# PowerShell scripts are typically authored as CRLF on Windows; keep
+# them that way so Notepad and the ISE don't show them as single-line.
+*.ps1 text eol=crlf
+
+# Common binaries — never touch line endings.
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.zip binary
