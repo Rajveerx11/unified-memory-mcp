@@ -3,13 +3,13 @@
 Setup contract for coding agents (Cursor, Antigravity, Hermes, PI Agent, Claude Code, Claude Desktop, Codex, generic MCP clients). Goal: zero human steps. Each command is idempotent — re-run on failure.
 
 Server identity:
-- MCP server name: `secondbrain` (registered in `src/server.ts`).
+- MCP server name: `unified-memory` (registered in `src/server.ts`).
 - Transport: **stdio** (primary) + read-only HTTP bridge on `localhost:3001`.
 - Config env var: `UNIFIED_MEMORY_CONFIG` (overrides default `<repo>/config.json`).
 - Entry point after build: `<REPO>/dist/index.js`.
 
 Substitute placeholders before running:
-- `<REPO>` — absolute path to the local clone (Windows: forward slashes are accepted in JSON, e.g. `C:/secondbrainmcp`).
+- `<REPO>` — absolute path to the local clone (Windows: forward slashes are accepted in JSON, e.g. `C:/unified-memory-mcp`).
 - `<HOME>` — user home directory (`$env:USERPROFILE` on Windows, `$HOME` on POSIX).
 
 ---
@@ -36,7 +36,7 @@ ollama pull gemma4:e4b
 ## 2. Clone, build, configure
 
 ```powershell
-git clone https://github.com/Rajveerx11/secondbrainmcp.git <REPO>
+git clone https://github.com/Rajveerx11/unified-memory-mcp.git <REPO>
 cd <REPO>
 npm install
 npm run build                              # produces dist/index.js
@@ -59,7 +59,7 @@ Provider fallback order at runtime: configured → other two → `noop` (no synt
 
 POSIX equivalent for clone/build:
 ```bash
-git clone https://github.com/Rajveerx11/secondbrainmcp.git <REPO>
+git clone https://github.com/Rajveerx11/unified-memory-mcp.git <REPO>
 cd <REPO> && npm ci && npm run build
 cp -n config.example.json config.json
 ```
@@ -110,7 +110,7 @@ File: `%APPDATA%\Claude\claude_desktop_config.json` (Windows), `~/Library/Applic
 ```json
 {
   "mcpServers": {
-    "secondbrain": {
+    "unified-memory": {
       "command": "node",
       "args": ["<REPO>/dist/index.js"],
       "env": {
@@ -127,15 +127,15 @@ Merge into existing `mcpServers` object — never overwrite the whole file. Rest
 
 User-scope registration (preferred, no project pollution):
 ```bash
-claude mcp add secondbrain --scope user -- node <REPO>/dist/index.js
-claude mcp list   # verify "secondbrain" appears
+claude mcp add unified-memory --scope user -- node <REPO>/dist/index.js
+claude mcp list   # verify "unified-memory" appears
 ```
 
 Or project-scope via `<REPO>/.mcp.json`:
 ```json
 {
   "mcpServers": {
-    "secondbrain": {
+    "unified-memory": {
       "command": "node",
       "args": ["<REPO>/dist/index.js"]
     }
@@ -150,7 +150,7 @@ File: `~/.cursor/mcp.json` (global) or `<project>/.cursor/mcp.json` (project-loc
 ```json
 {
   "mcpServers": {
-    "secondbrain": {
+    "unified-memory": {
       "command": "node",
       "args": ["<REPO>/dist/index.js"],
       "env": { "UNIFIED_MEMORY_CONFIG": "<REPO>/config.json" }
@@ -166,7 +166,7 @@ Reload Cursor: `Cmd/Ctrl+Shift+P` → `MCP: Reload Servers`.
 File: `~/.codex/config.toml`. TOML, not JSON:
 
 ```toml
-[mcp_servers.secondbrain]
+[mcp_servers.unified-memory]
 command = "node"
 args = ["<REPO>/dist/index.js"]
 env = { UNIFIED_MEMORY_CONFIG = "<REPO>/config.json" }
@@ -182,7 +182,7 @@ Use Hermes' agent-config file (typically `~/.hermes/agents.yaml` or the equivale
 
 ```yaml
 mcp_servers:
-  secondbrain:
+  unified-memory:
     command: node
     args:
       - <REPO>/dist/index.js
@@ -229,10 +229,20 @@ Do **not** install this if any MCP client is already configured to spawn the ser
 2. `<REPO>/dist/index.js` exists (rerun `npm run build` if absent).
 3. `<REPO>/config.json` exists and parses (`node -e "JSON.parse(require('fs').readFileSync('config.json'))"`).
 4. Smoke test (§4) returns 200 within 30 seconds.
-5. Client config file lists `secondbrain` under `mcpServers` (or the client-specific equivalent) and points at `<REPO>/dist/index.js`.
+5. Client config file lists `unified-memory` under `mcpServers` (or the client-specific equivalent) and points at `<REPO>/dist/index.js`.
 6. After client restart, the client lists the nine tools above.
 
-If step 6 fails, read `<archivePath>/../logs/server.log` (default `<HOME>/UnifiedMemory/logs/server.log`). The most common causes: stale `dist/` from before a code change (rebuild), `config.json` schema mismatch (re-copy from `config.example.json`), and port 3001 already in use (set `httpBridgeEnabled: false` or change `httpBridgePort`).
+If step 6 fails, read `<archivePath>/../logs/server.log` (default `<HOME>/UnifiedMemory/logs/server.log`). The most common causes: stale `dist/` from before a code change (rebuild), `config.json` schema mismatch (re-copy from `config.example.json`), and port 3001 already in use.
+
+### 7.1 Expected log signals (non-fatal)
+
+These messages indicate degraded state, not failure — MCP stdio continues to work for the client:
+
+- `port 3001 already in use — HTTP bridge disabled for this run` — another process owns the port. Dashboard endpoints are unreachable; MCP tools are still fine. To restore the bridge, free the port or change `httpBridgePort` and restart.
+- `no LLM provider available — synthesis disabled, raw data still served` — Ollama not running and no cloud keys set. Tools return raw parsed data without synthesis. Start Ollama or set an API key, then call `switch_provider`.
+- `unhandledRejection` / `uncaughtException` lines — server logged an internal error but **did not exit**. Treat as a bug report: capture the stack from `server.log` and attach to an issue.
+
+Hard failures (process exits): missing `dist/index.js`, missing `config.json`, schema-invalid `config.json`. These print to stderr before exit code 1.
 
 ---
 

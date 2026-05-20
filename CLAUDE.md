@@ -50,6 +50,17 @@ sources → parsers → dataStore (brain-state.json) → thinking layer (LLM) �
 - `runtime.setConfig(config)` exposes the loaded config to modules that can't receive it through their call chain (e.g. tool handlers reached via the HTTP bridge).
 - Config file path resolution: `UNIFIED_MEMORY_CONFIG` env var → `<repo>/config.json`. `config.json` is gitignored; commit changes via `config.example.json` only.
 
+### Crash resilience
+
+The server is designed to keep running through localized failures:
+
+- `src/index.ts` installs `process.on("unhandledRejection")` and `process.on("uncaughtException")` handlers that **log via the file logger and return** instead of crashing. New code should still prefer explicit try/catch; these are a safety net, not a license to swallow errors.
+- `src/http-bridge.ts` attaches `server.on("error", ...)` and a `clientError` handler. `EADDRINUSE` on the configured port is logged and the bridge is left disabled for the rest of the run — the MCP stdio server keeps serving tools.
+- `src/logger.ts` guards `rotate()` with a `rotating` flag and skips writes while rotation is in flight, preventing concurrent rotations from writing to an ended stream under log floods.
+- `src/watcher.ts` wraps every chokidar event handler in a `safe(label, fn)` helper that catches the resulting promise rejection and logs it with the offending file path. A single bad file no longer leaks an unhandled rejection.
+
+When debugging a stuck server, grep `<logsPath>/server.log` for `unhandledRejection`, `uncaughtException`, `EADDRINUSE`, or `watcher` error lines — these mark degraded-but-running states rather than a clean exit.
+
 ### Adding a new MCP tool
 
 1. Create `src/tools/<name>.ts` exporting `{ name, description, inputSchema, handler }`. `inputSchema` is a Zod object; `handler(args)` returns `{ content: [{ type: "text", text: JSON.stringify(...) }] }`.

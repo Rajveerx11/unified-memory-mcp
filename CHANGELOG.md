@@ -5,6 +5,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `AGENTS.md` — zero-touch MCP setup contract for Claude Desktop, Claude Code, Cursor, Codex, Antigravity, Hermes, PI Agent, and generic MCP clients.
+- `CLAUDE.md` — architecture and command reference for Claude Code agents.
+
+### Changed
+
+- HTTP bridge now tolerates `EADDRINUSE` on the configured port (logs and continues with the bridge disabled) instead of crashing the whole process.
+- Logger `rotate()` is now re-entrant — concurrent rotation attempts under log floods are dropped instead of writing to an ended stream.
+- Chokidar watcher event handlers are wrapped to catch rejected promises and log the offending file path.
+- Process-level `unhandledRejection` and `uncaughtException` handlers log via the file logger so unknown async failures no longer exit the server silently.
+
 ## [1.0.0] - 2026-05-20
 
 ### Added
