@@ -156,6 +156,15 @@ async function main(): Promise<void> {
   process.on("SIGINT", () => void shutdown("SIGINT"));
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
   process.on("SIGHUP", () => void shutdown("SIGHUP"));
+
+  process.on("unhandledRejection", (reason: any) => {
+    const msg = reason?.stack ?? reason?.message ?? String(reason);
+    logger.error("process", `unhandledRejection: ${msg}`);
+  });
+  process.on("uncaughtException", (err: any) => {
+    const msg = err?.stack ?? err?.message ?? String(err);
+    logger.error("process", `uncaughtException: ${msg}`);
+  });
 }
 
 main().catch(async (err: any) => {

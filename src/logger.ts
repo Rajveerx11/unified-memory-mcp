@@ -11,6 +11,7 @@ class Logger {
   private logFile: string | null = null;
   private stream: WriteStream | null = null;
   private currentBytes = 0;
+  private rotating = false;
 
   async init(logDir: string): Promise<void> {
     this.logDir = logDir;
@@ -29,36 +30,42 @@ class Logger {
 
   private async rotate(): Promise<void> {
     if (!this.logDir || !this.logFile) return;
-    if (this.stream) {
-      await new Promise<void>((resolve) => this.stream!.end(resolve));
-      this.stream = null;
-    }
-    for (let i = MAX_FILES - 1; i >= 1; i--) {
-      const src = path.join(this.logDir, `server.log.${i}`);
-      const dst = path.join(this.logDir, `server.log.${i + 1}`);
-      try {
-        await fs.rename(src, dst);
-      } catch {
-        // file may not exist
-      }
-    }
+    if (this.rotating) return;
+    this.rotating = true;
     try {
-      await fs.rename(this.logFile, path.join(this.logDir, "server.log.1"));
-    } catch {
-      // ignore
+      if (this.stream) {
+        await new Promise<void>((resolve) => this.stream!.end(resolve));
+        this.stream = null;
+      }
+      for (let i = MAX_FILES - 1; i >= 1; i--) {
+        const src = path.join(this.logDir, `server.log.${i}`);
+        const dst = path.join(this.logDir, `server.log.${i + 1}`);
+        try {
+          await fs.rename(src, dst);
+        } catch {
+          // file may not exist
+        }
+      }
+      try {
+        await fs.rename(this.logFile, path.join(this.logDir, "server.log.1"));
+      } catch {
+        // ignore
+      }
+      this.stream = createWriteStream(this.logFile, { flags: "a" });
+      this.currentBytes = 0;
+    } finally {
+      this.rotating = false;
     }
-    this.stream = createWriteStream(this.logFile, { flags: "a" });
-    this.currentBytes = 0;
   }
 
   private write(level: Level, module: string, msg: string): void {
     const ts = new Date().toISOString();
     const line = `[${ts}] [${level.toUpperCase()}] [${module}] ${msg}\n`;
     process.stderr.write(line);
-    if (this.stream) {
+    if (this.stream && !this.rotating) {
       this.stream.write(line);
       this.currentBytes += Buffer.byteLength(line);
-      if (this.currentBytes >= MAX_BYTES) {
+      if (this.currentBytes >= MAX_BYTES && !this.rotating) {
         void this.rotate();
       }
     }

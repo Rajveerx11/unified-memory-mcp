@@ -231,6 +231,22 @@ export function startHttpBridge(config: Config): RunningHttpBridge | null {
     }
   });
 
+  server.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EADDRINUSE") {
+      logger.error(
+        "http-bridge",
+        `port ${config.httpBridgePort} already in use — HTTP bridge disabled for this run (set httpBridgePort in config.json or stop the conflicting process)`,
+      );
+    } else {
+      logger.error("http-bridge", `server error: ${err?.message ?? err}`);
+    }
+  });
+
+  server.on("clientError", (err, socket) => {
+    logger.warn("http-bridge", `client error: ${err?.message ?? err}`);
+    try { socket.destroy(); } catch { /* noop */ }
+  });
+
   server.listen(config.httpBridgePort, "127.0.0.1");
 
   return {

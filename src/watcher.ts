@@ -25,13 +25,19 @@ export class Watcher {
       return;
     }
 
+    const safe = (label: string, fn: (p: string) => Promise<void>) => (p: string) => {
+      fn.call(this, p).catch((err: any) => {
+        logger.error("watcher", `${label} handler crashed for ${p}: ${err?.stack ?? err?.message ?? err}`);
+      });
+    };
+
     const ccWatcher = chokidar.watch(this.config.claudeCodeLogsPath, {
       persistent: true,
       ignoreInitial: true,
       awaitWriteFinish: { stabilityThreshold: 500, pollInterval: 200 },
     });
-    ccWatcher.on("add", (p) => this.handleClaudeCode(p));
-    ccWatcher.on("change", (p) => this.handleClaudeCode(p));
+    ccWatcher.on("add", safe("claudecode.add", this.handleClaudeCode));
+    ccWatcher.on("change", safe("claudecode.change", this.handleClaudeCode));
     ccWatcher.on("error", (err) => logger.warn("watcher", `claudecode watcher error: ${err}`));
     this.watchers.push(ccWatcher);
 
@@ -41,9 +47,9 @@ export class Watcher {
       awaitWriteFinish: { stabilityThreshold: 500, pollInterval: 200 },
       ignored: (p: string) => p.includes(`${path.sep}.obsidian${path.sep}`),
     });
-    obWatcher.on("add", (p) => this.handleObsidian(p));
-    obWatcher.on("change", (p) => this.handleObsidian(p));
-    obWatcher.on("unlink", (p) => this.handleObsidianRemove(p));
+    obWatcher.on("add", safe("obsidian.add", this.handleObsidian));
+    obWatcher.on("change", safe("obsidian.change", this.handleObsidian));
+    obWatcher.on("unlink", safe("obsidian.unlink", this.handleObsidianRemove));
     obWatcher.on("error", (err) => logger.warn("watcher", `obsidian watcher error: ${err}`));
     this.watchers.push(obWatcher);
 
@@ -52,8 +58,8 @@ export class Watcher {
       ignoreInitial: true,
       awaitWriteFinish: { stabilityThreshold: 1000, pollInterval: 200 },
     });
-    memWatcher.on("add", (p) => this.handleMemory(p));
-    memWatcher.on("change", (p) => this.handleMemory(p));
+    memWatcher.on("add", safe("memory.add", this.handleMemory));
+    memWatcher.on("change", safe("memory.change", this.handleMemory));
     memWatcher.on("error", (err) => logger.warn("watcher", `memory watcher error: ${err}`));
     this.watchers.push(memWatcher);
 
