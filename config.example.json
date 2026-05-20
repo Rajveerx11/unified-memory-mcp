@@ -1,8 +1,8 @@
 {
-  "memoryExportPath": "C:/Users/rajve/SecondBrain/memory-exports",
-  "claudeCodeLogsPath": "C:/Users/rajve/.claude/projects",
-  "obsidianVaultPath": "C:/Users/rajve/ObsidianVault",
-  "archivePath": "C:/Users/rajve/SecondBrain/archive",
+  "memoryExportPath": "~/UnifiedMemory/memory-exports",
+  "claudeCodeLogsPath": "~/.claude/projects",
+  "obsidianVaultPath": "~/Documents/ObsidianVault",
+  "archivePath": "~/UnifiedMemory/archive",
   "llm": {
     "provider": "ollama",
     "ollama": {

@@ -1,10 +1,12 @@
 #requires -Version 5.1
 $ErrorActionPreference = "SilentlyContinue"
 
-$task = Get-ScheduledTask -TaskName "SecondBrainMCP" -ErrorAction SilentlyContinue
-if ($task) {
-    Stop-ScheduledTask -TaskName "SecondBrainMCP"
-    Write-Host "Stopped scheduled task 'SecondBrainMCP'."
+foreach ($taskName in @("UnifiedMemoryMCP", "SecondBrainMCP")) {
+    $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+    if ($task) {
+        Stop-ScheduledTask -TaskName $taskName
+        Write-Host "Stopped scheduled task '$taskName'."
+    }
 }
 
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path

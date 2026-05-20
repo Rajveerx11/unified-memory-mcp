@@ -16,7 +16,7 @@ export interface RunningServer {
 }
 
 export async function startMcpServer(): Promise<RunningServer> {
-  const server = new McpServer({ name: "secondbrain", version: "1.0.0" });
+  const server = new McpServer({ name: "unified-memory", version: "1.0.0" });
 
   const tools = [
     getProjectsTool,

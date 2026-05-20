@@ -216,7 +216,7 @@ export function startHttpBridge(config: Config): RunningHttpBridge | null {
         return;
       }
       if (isStoreEmpty()) {
-        writeJson(res, 202, { status: "initializing", message: "Brain is still processing data. Try again in a minute." });
+        writeJson(res, 202, { status: "initializing", message: "Unified memory is still processing data. Try again in a minute." });
         log(202);
         return;
       }

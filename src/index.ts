@@ -64,7 +64,7 @@ async function printStartupHealth(config: Config): Promise<void> {
 
   const line = "═".repeat(60);
   logger.info("startup", line);
-  logger.info("startup", "Second Brain MCP Server v1.0.0");
+  logger.info("startup", "Unified Memory MCP Server v1.0.0");
   logger.info("startup", line);
   logger.info("startup", `Claude Code logs:  ${config.claudeCodeLogsPath} (${cc.projects} project dirs, ${cc.sessions} session files)`);
   logger.info("startup", `Memory exports:    ${config.memoryExportPath} (${memCount === 0 ? "empty — waiting for first export" : `${memCount} files`})`);
@@ -85,8 +85,27 @@ async function printStartupHealth(config: Config): Promise<void> {
   logger.info("startup", "MCP server ready on stdio. Waiting for connections...");
 }
 
+function resolveConfigPath(): string {
+  const fromEnv = process.env.UNIFIED_MEMORY_CONFIG?.trim();
+  if (fromEnv) return path.resolve(fromEnv);
+  return path.join(PROJECT_ROOT, "config.json");
+}
+
 async function main(): Promise<void> {
-  const configPath = path.join(PROJECT_ROOT, "config.json");
+  const configPath = resolveConfigPath();
+  try {
+    await fs.access(configPath);
+  } catch {
+    const example = path.join(PROJECT_ROOT, "config.example.json");
+    console.error(
+      `Configuration not found: ${configPath}\n\n` +
+        `Copy the example file and edit paths for your machine:\n` +
+        `  cp config.example.json config.json\n\n` +
+        `Or set UNIFIED_MEMORY_CONFIG to a custom config file path.\n` +
+        `Example template: ${example}`
+    );
+    process.exit(1);
+  }
   const config = await loadConfig(configPath);
   await logger.init(config.logsPath);
   logger.info("index", `loaded config from ${configPath}`);

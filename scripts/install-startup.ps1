@@ -1,13 +1,13 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-    Registers a Windows scheduled task that launches the Second Brain MCP server on user logon.
+    Registers a Windows scheduled task that launches the Unified Memory MCP server on user logon.
 .DESCRIPTION
     Creates a hidden VBS launcher (start-hidden.vbs) so node runs without any console window or
     taskbar entry, then registers a scheduled task pointing at it. Triggered at logon for the
     current user.
 .PARAMETER ProjectRoot
-    Path to the secondbrainmcp project root. Defaults to the parent of this script.
+    Path to the unified-memory-mcp project root. Defaults to the parent of this script.
 #>
 
 param(
@@ -43,14 +43,15 @@ $settings = New-ScheduledTaskSettingsSet `
 $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited
 
 Unregister-ScheduledTask -TaskName "SecondBrainMCP" -Confirm:$false -ErrorAction SilentlyContinue
+Unregister-ScheduledTask -TaskName "UnifiedMemoryMCP" -Confirm:$false -ErrorAction SilentlyContinue
 
 Register-ScheduledTask `
-    -TaskName "SecondBrainMCP" `
+    -TaskName "UnifiedMemoryMCP" `
     -Action $action `
     -Trigger $trigger `
     -Settings $settings `
     -Principal $principal `
-    -Description "Second Brain MCP Server (stdio, runs hidden on logon)" | Out-Null
+    -Description "Unified Memory MCP Server (stdio, runs hidden on logon)" | Out-Null
 
-Write-Host "Scheduled task 'SecondBrainMCP' installed."
-Write-Host "It will start automatically on next logon. To start now: Start-ScheduledTask -TaskName SecondBrainMCP"
+Write-Host "Scheduled task 'UnifiedMemoryMCP' installed."
+Write-Host "It will start automatically on next logon. To start now: Start-ScheduledTask -TaskName UnifiedMemoryMCP"

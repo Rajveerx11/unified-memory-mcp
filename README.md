@@ -1,36 +1,93 @@
-# Second Brain MCP Server
+# Unified Memory MCP
 
-A locally hosted Model Context Protocol (MCP) server for Windows 11 that ingests three sources, synthesizes them with an LLM (local Ollama or Anthropic API), and exposes second-brain tools to any MCP client (Claude Desktop, Claude Code, etc.) over stdio.
+[![CI](https://github.com/Rajveerx11/unified-memory-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Rajveerx11/unified-memory-mcp/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](package.json)
 
-## Sources
+A **local** [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server for Windows that **unifies** Claude memory exports, Claude Code session logs, and Obsidian notes into one store, optionally synthesizes them with an LLM, and exposes query tools to any MCP client (Claude Desktop, Claude Code, Cursor, etc.) over stdio.
 
-1. **Claude.ai memory exports** — JSON or ZIP files dropped into `C:/Users/rajve/SecondBrain/memory-exports`
-2. **Claude Code session logs** — `.jsonl` files under `C:/Users/rajve/.claude/projects` (auto-deleted at 30 days, so the server archives parsed summaries)
-3. **Obsidian vault** — `C:/Users/rajve/ObsidianVault` (set this to your real vault path in `config.json`)
+All data stays on your machine unless you enable a cloud LLM provider.
 
-## Tools
+## Features
 
-All return JSON in MCP `text` content.
+- **Three ingest sources** — Claude.ai memory exports, Claude Code session logs, and an Obsidian vault
+- **File watchers** — incremental updates when sources change
+- **LLM synthesis** — local Ollama (default), Ollama Cloud, or Anthropic Claude API, with automatic fallback
+- **Nine MCP tools** — projects, todos, insights, patterns, search, weekly summary, dashboard, status, and runtime provider switch
+- **HTTP bridge** — read-only JSON API for local dashboards (`localhost`)
+- **Windows-friendly** — PowerShell scripts for foreground run and logon startup via Scheduled Task
 
-- `get_projects(filter?)`
-- `get_thinking_patterns()`
-- `get_todos({status?, source?})`
-- `get_insights()`
-- `get_weekly_summary({weeks_back?})`
-- `search_brain({query, source?})`
-- `get_dashboard_data()`
-- `get_brain_status()` — provider, sources, last thinking run, stats
-- `switch_provider({provider, model?})` — runtime LLM switch (does not persist to config.json)
+## Requirements
 
-## LLM Providers
+- **Windows 10/11** (primary target; paths use `~` home expansion)
+- **Node.js 20+**
+- At least one configured data source (others are optional)
+- For AI synthesis: [Ollama](https://ollama.com) (recommended, local) and/or API keys for cloud providers
 
-The synthesis layer supports three backends:
+## Quick start
 
-- **`ollama`** — local, free, private (default). Talks to a running Ollama daemon at `http://localhost:11434/v1/chat/completions` (OpenAI-compatible).
-- **`ollama-cloud`** — Ollama's hosted API at `https://ollama.com/v1/chat/completions`. Same OpenAI-compatible shape; bigger models, no local GPU needed. Requires an API key.
-- **`anthropic`** — Claude API. Requires `ANTHROPIC_API_KEY`.
+```powershell
+git clone https://github.com/Rajveerx11/unified-memory-mcp.git
+cd unified-memory-mcp
+npm install
+.\scripts\setup-config.ps1   # creates config.json from template
+# Edit config.json — set memoryExportPath, claudeCodeLogsPath, obsidianVaultPath, archivePath
+npm run build
+.\scripts\start.ps1
+```
 
-If the configured provider is unavailable on startup the server **falls back** through the others in order, then to a noop (raw data only, no synthesis). `switch_provider` swaps the active backend at runtime.
+Or copy the config manually:
+
+```powershell
+Copy-Item config.example.json config.json
+```
+
+Point `config.json` at your real folders. Paths support `~` for your user profile (e.g. `~/UnifiedMemory/archive`).
+
+Override the config file location:
+
+```powershell
+$env:UNIFIED_MEMORY_CONFIG = "D:\configs\my-unified-memory.json"
+node dist/index.js
+```
+
+## Data sources
+
+| Source | Typical path (customize in `config.json`) | Notes |
+|--------|-------------------------------------------|--------|
+| Claude.ai memory exports | `~/UnifiedMemory/memory-exports` | Drop JSON or ZIP exports here |
+| Claude Code session logs | `~/.claude/projects` | `.jsonl` sessions; summaries archived before 30-day cleanup |
+| Obsidian vault | `~/Documents/ObsidianVault` | Markdown notes; optional if vault not used |
+
+The server creates archive and log directories under the parent of `archivePath` (e.g. `~/UnifiedMemory/logs`, `~/UnifiedMemory/archive/`).
+
+## MCP tools
+
+All tools return JSON in MCP `text` content.
+
+| Tool | Description |
+|------|-------------|
+| `get_projects` | Active projects (`filter?`) |
+| `get_thinking_patterns` | Recurring themes and patterns |
+| `get_todos` | Todos (`status?`, `source?`) |
+| `get_insights` | Synthesized insights |
+| `get_weekly_summary` | Weekly rollups (`weeks_back?`) |
+| `search_brain` | Full-text search (`query`, `source?`) |
+| `get_dashboard_data` | Combined dashboard payload |
+| `get_brain_status` | Provider, sources, last run, stats |
+| `switch_provider` | Runtime LLM switch (`provider`, `model?`) — in-memory only |
+
+## LLM providers
+
+| Provider | Cost | Privacy | Requirement |
+|----------|------|---------|-------------|
+| `ollama` (default) | Free | Local | Ollama running at `http://localhost:11434` |
+| `ollama-cloud` | Paid | Cloud | `OLLAMA_API_KEY` |
+| `anthropic` | Paid | Cloud | `ANTHROPIC_API_KEY` |
+
+On startup, if the configured provider is unavailable, the server **falls back** through the others, then to a noop mode (raw parsed data only). Use `switch_provider` or the HTTP API to change the active backend at runtime.
+
+### Example `config.json` LLM section
 
 ```json
 "llm": {
@@ -58,125 +115,124 @@ If the configured provider is unavailable on startup the server **falls back** t
 }
 ```
 
-### Provider behavior
+API keys use the `env:VAR_NAME` convention in config, or set environment variables directly. See [.env.example](.env.example).
 
-- `provider` selects the active backend (`"ollama"` or `"anthropic"`).
-- On startup, if the configured provider is unavailable, the server **automatically falls back** to the other provider.
-- If neither is available, the server still runs — tools just return raw parsed data with no AI synthesis.
-- `switch_provider` swaps the active backend at runtime (in memory only — restart reverts to config default).
+### Ollama (local, recommended)
 
-### Ollama setup (default — local, free, private)
+1. Install [Ollama](https://ollama.com)
+2. Pull your model: `ollama pull gemma4:e4b`
+3. Ensure Ollama is running (`ollama serve` or the tray app)
+4. Keep `"provider": "ollama"` in `config.json`
 
-1. Install Ollama: <https://ollama.com>
-2. Pull the configured model: `ollama pull gemma4:e4b`
-3. Make sure Ollama is running (`ollama serve` or its tray app).
-4. `llm.provider: "ollama"` is the default — no further config needed.
+| Model | Approx. size | Notes |
+|-------|--------------|--------|
+| `gemma4:e4b` | ~9.6 GB | Default; strong JSON output |
+| `gemma4:latest` | ~9.6 GB | 8B variant |
+| `qwen2.5:14b` | ~10 GB | Strong instruction-following |
+| `qwen2.5:7b` | ~5 GB | Faster, lighter |
+| `llama3.1:8b` | ~5 GB | Lightweight baseline |
 
-### Recommended Ollama models
+### Ollama Cloud
 
-| Model | Disk (Q4) | Quality for this task | Speed |
-|-------|-----------|-----------------------|-------|
-| `gemma4:e4b` (4.5B effective) | ~9.6 GB | Default. Strong JSON output, edge-friendly | Fast |
-| `gemma4:latest` (8B) | ~9.6 GB | Strong structured output | Fast |
-| `qwen2.5:14b` | ~10 GB | Strongest instruction-following at this size | Medium |
-| `qwen2.5:7b` | ~5 GB | Fast, decent JSON | Fast |
-| `llama3.1:8b` | ~5 GB | Lightweight baseline, weaker at complex JSON | Fast |
+1. Create an API key at [ollama.com/settings/keys](https://ollama.com/settings/keys)
+2. Set `OLLAMA_API_KEY` in your user environment
+3. Set `"provider": "ollama-cloud"` or use `switch_provider`
 
-If the configured Ollama model isn't pulled yet, the server logs:
-```
-Model 'gemma4:e4b' not found in Ollama. Run: ollama pull gemma4:e4b
-```
-and falls back to the next provider in the chain.
-
-### Ollama Cloud setup (cloud-hosted, paid)
-
-Cloud-hosted Ollama runs the same OpenAI-compatible endpoints as a local daemon, just with a different base URL and bearer-token auth. Useful when the local machine can't host the model size you want.
-
-1. Create an API key at <https://ollama.com/settings/keys>
-2. Set the env var:
-   ```powershell
-   [Environment]::SetEnvironmentVariable("OLLAMA_API_KEY", "your-key-here", "User")
-   ```
-3. Pick a cloud-hosted model from <https://ollama.com/search?c=cloud> (e.g. `gpt-oss:120b`, `qwen3-coder:480b-cloud`, `deepseek-v3.1:671b-cloud`) and set it under `llm.ollamaCloud.model`.
-4. Set `llm.provider: "ollama-cloud"` (or leave on `"ollama"` and use `switch_provider` at runtime).
-
-The cloud provider hits `https://ollama.com/v1/chat/completions` with `Authorization: Bearer $OLLAMA_API_KEY`. No additional dependencies — same `fetch` path the local provider uses.
-
-### Anthropic setup (optional fallback — cloud, paid)
+### Anthropic
 
 ```powershell
 [Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", "sk-ant-...", "User")
 ```
 
-The synthesis layer uses `claude-sonnet-4-6` by default. Change `llm.anthropic.model` in `config.json` to override.
+Restart terminals after setting user environment variables.
 
-## Build and run
+## Claude Desktop
 
-```powershell
-cd C:\secondbrainmcp
-npm install
-npm run build
-.\scripts\start.ps1
-```
-
-## Run on logon (hidden, no console window)
-
-```powershell
-.\scripts\install-startup.ps1
-```
-
-To stop:
-
-```powershell
-.\scripts\stop.ps1
-```
-
-To uninstall:
-
-```powershell
-.\scripts\uninstall-startup.ps1
-```
-
-## Hook up to Claude Desktop
-
-Add to `%APPDATA%\Claude\claude_desktop_config.json`:
+Add to `%APPDATA%\Claude\claude_desktop_config.json` (adjust the path to your clone):
 
 ```json
 {
   "mcpServers": {
-    "secondbrain": {
+    "unified-memory": {
       "command": "node",
-      "args": ["C:/secondbrainmcp/dist/index.js"]
+      "args": ["C:/path/to/unified-memory-mcp/dist/index.js"]
     }
   }
 }
 ```
 
-Restart Claude Desktop. The nine tools should appear under the secondbrain server.
+Restart Claude Desktop. Tools appear under the `unified-memory` server.
 
-## HTTP bridge (for browser dashboards)
+Similar MCP configuration works in **Claude Code**, **Cursor**, and other MCP-capable clients.
 
-Alongside the MCP stdio interface, the server exposes a small read-only JSON API on `http://localhost:3001` so a browser-based dashboard can fetch the same data the MCP tools return:
+## HTTP bridge (local dashboards)
+
+When `httpBridgeEnabled` is `true` (default), a read-only API listens on `http://localhost:3001` (configurable via `httpBridgePort`):
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/dashboard` | Combined dashboard data |
+| GET | `/api/projects` | Projects |
+| GET | `/api/todos` | Todos |
+| GET | `/api/insights` | Insights |
+| GET | `/api/patterns` | Thinking patterns |
+| GET | `/api/summary` | Weekly summary |
+| GET | `/api/search?q=...` | Search |
+| GET | `/api/status` | Brain status |
+| GET | `/api/providers` | Provider list and key status |
+| POST | `/api/provider/switch` | Body `{ "provider", "model?" }` |
+
+CORS allows `http://localhost:3000`. Endpoints return `202 { "status": "initializing" }` until the first scan completes. Disable with `"httpBridgeEnabled": false`.
+
+## Run on Windows logon (optional)
+
+Hidden background start via Scheduled Task:
+
+```powershell
+npm run build
+.\scripts\install-startup.ps1
+```
+
+Stop or remove:
+
+```powershell
+.\scripts\stop.ps1
+.\scripts\uninstall-startup.ps1
+```
+
+## Project layout
 
 ```
-GET  /api/dashboard            projects + todos + insights + weekly summary
-GET  /api/projects             get_projects output
-GET  /api/todos                get_todos output
-GET  /api/insights             get_insights output
-GET  /api/patterns             get_thinking_patterns output
-GET  /api/summary              get_weekly_summary output
-GET  /api/search?q=...         search_brain output
-GET  /api/status               get_brain_status output
-GET  /api/providers            list providers + active + per-kind model + keyPresent flags
-POST /api/provider/switch      body { provider, model? } — switches active LLM
+unified-memory-mcp/
+├── config.example.json   # Template — copy to config.json (gitignored)
+├── src/
+│   ├── index.ts          # Entry point
+│   ├── server.ts         # MCP stdio server
+│   ├── http-bridge.ts    # Local HTTP API
+│   ├── parsers/          # Source parsers
+│   ├── tools/            # MCP tool handlers
+│   └── llm/              # Provider implementations
+└── scripts/              # PowerShell helpers
 ```
-
-The `providers` + `provider/switch` endpoints back a dashboard dropdown that lets the user pick local Ollama, Ollama Cloud, or Anthropic at runtime. `GET /api/providers` returns enough for the dashboard to render the menu (label, configured model, whether the required API key is present); `POST /api/provider/switch` swaps the active backend and returns 200 on success or 409 with a reason (e.g. missing API key, model not pulled). Provider routes are not gated by the `initializing` 202 response, so the dashboard can switch backends before the first scan finishes.
-
-CORS is open to `http://localhost:3000`. While the data store is empty (first scan still running) endpoints return `202` with `{ status: "initializing" }`. Disable with `"httpBridgeEnabled": false` or change the port via `"httpBridgePort"` in `config.json`.
 
 ## Logs and state
 
-- Logs: `C:/Users/rajve/SecondBrain/logs/server.log` (rotated, 5 × 5MB)
-- State: `C:/Users/rajve/SecondBrain/archive/brain-state.json` (with `.backup.json` companion)
-- Per-source archives: `C:/Users/rajve/SecondBrain/archive/{claudecode,obsidian,memory,synthesis}/`
+Paths derive from `archivePath` in your config (e.g. if `archivePath` is `~/UnifiedMemory/archive`):
+
+- **Logs:** `~/UnifiedMemory/logs/server.log` (rotated, 5 × 5 MB)
+- **State:** `~/UnifiedMemory/archive/brain-state.json` (+ `.backup.json`)
+- **Per-source archives:** `~/UnifiedMemory/archive/{claudecode,obsidian,memory,synthesis}/`
+
+## Privacy and security
+
+- The server only reads paths you configure and only calls LLM endpoints you enable.
+- Do **not** commit `config.json`, `.env`, exports, or archives to git.
+- Report security issues privately — see [SECURITY.md](SECURITY.md).
+
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+## License
+
+[MIT](LICENSE) — Copyright (c) 2026 Rajveerx11

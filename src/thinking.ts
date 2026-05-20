@@ -110,7 +110,7 @@ const EXAMPLE_OUTPUT = `{
   "weeklySummary": "Spent the week building a local MCP server...\\n\\nAlso revisited the Axon landing page hero copy..."
 }`;
 
-const BASE_SYSTEM_PROMPT = `You are a "second brain" synthesis engine. You receive aggregated parsed data from three sources about a single user:
+const BASE_SYSTEM_PROMPT = `You are a unified memory synthesis engine. You receive aggregated parsed data from three sources about a single user:
 - memory: conversation history exported from claude.ai
 - claudeCode: recent and older coding session turns from Claude Code
 - obsidian: notes from the user's Obsidian vault

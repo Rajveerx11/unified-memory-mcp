@@ -105,7 +105,7 @@ export async function loadConfig(configPath: string): Promise<Config> {
   const parsed = ConfigSchema.parse(JSON.parse(raw));
 
   const archivePath = normalizePath(parsed.archivePath);
-  const secondBrainRoot = path.dirname(archivePath);
+  const dataRoot = path.dirname(archivePath);
 
   const ollama = parsed.llm.ollama ?? DEFAULT_OLLAMA;
   const ollamaCloud = parsed.llm.ollamaCloud ?? DEFAULT_OLLAMA_CLOUD;
@@ -120,7 +120,7 @@ export async function loadConfig(configPath: string): Promise<Config> {
     processOnStartup: parsed.processOnStartup,
     httpBridgeEnabled: parsed.httpBridgeEnabled,
     httpBridgePort: parsed.httpBridgePort,
-    logsPath: path.join(secondBrainRoot, "logs"),
+    logsPath: path.join(dataRoot, "logs"),
     llm: {
       provider: parsed.llm.provider,
       ollama,

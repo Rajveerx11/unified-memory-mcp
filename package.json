@@ -1,13 +1,36 @@
 {
-  "name": "secondbrainmcp",
+  "name": "unified-memory-mcp",
   "version": "1.0.0",
-  "description": "Local stdio MCP server that ingests Claude.ai memory exports, Claude Code session logs, and an Obsidian vault, runs an AI synthesis layer over them, and exposes second-brain tools.",
+  "description": "Local MCP server that unifies Claude memory exports, Claude Code logs, and Obsidian notes, then exposes search and summary tools to MCP clients.",
   "type": "module",
   "main": "dist/index.js",
+  "license": "MIT",
+  "author": "Rajveerx11",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rajveerx11/unified-memory-mcp.git"
+  },
+  "bugs": "https://github.com/Rajveerx11/unified-memory-mcp/issues",
+  "homepage": "https://github.com/Rajveerx11/unified-memory-mcp#readme",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "unified-memory",
+    "obsidian",
+    "claude",
+    "claude-code",
+    "ollama",
+    "personal-knowledge",
+    "windows"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "setup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-config.ps1"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",

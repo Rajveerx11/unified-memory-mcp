@@ -41,7 +41,7 @@ async function countObsidian(p: string): Promise<number | null> {
 export const getBrainStatusTool = {
   name: "get_brain_status",
   description:
-    "Returns the current status of the Second Brain system: which LLM provider is active, which data sources are connected, last processing time, and data statistics.",
+    "Returns the current status of the unified memory system: which LLM provider is active, which data sources are connected, last processing time, and data statistics.",
   inputSchema: {},
   handler: async () => {
     const config = runtime.requireConfig();

@@ -7,5 +7,5 @@ if (-not (Test-Path $EntryPoint)) {
     Write-Error "Build artifact not found: $EntryPoint`nRun 'npm run build' first."
 }
 
-Write-Host "Starting Second Brain MCP server (foreground, Ctrl+C to stop)..."
+Write-Host "Starting Unified Memory MCP server (foreground, Ctrl+C to stop)..."
 & node $EntryPoint

@@ -2,7 +2,8 @@
 $ErrorActionPreference = "Stop"
 
 Unregister-ScheduledTask -TaskName "SecondBrainMCP" -Confirm:$false -ErrorAction SilentlyContinue
-Write-Host "Scheduled task 'SecondBrainMCP' removed (if it existed)."
+Unregister-ScheduledTask -TaskName "UnifiedMemoryMCP" -Confirm:$false -ErrorAction SilentlyContinue
+Write-Host "Scheduled tasks 'SecondBrainMCP' and 'UnifiedMemoryMCP' removed (if they existed)."
 
 $VbsPath = Join-Path (Resolve-Path (Join-Path $PSScriptRoot "..")).Path "scripts\start-hidden.vbs"
 if (Test-Path $VbsPath) {
