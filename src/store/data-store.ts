@@ -144,9 +144,11 @@ class DataStore {
   }
 
   async flush(): Promise<void> {
-    this.writePending = this.writePending.then(() => this.writeNow()).catch((err) => {
-      logger.error("data-store", `write failed: ${err?.message ?? err}`);
-    });
+    this.writePending = this.writePending
+      .then(() => this.writeNow())
+      .catch((err) => {
+        logger.error("data-store", `write failed: ${err?.message ?? err}`);
+      });
     await this.writePending;
   }
 

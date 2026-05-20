@@ -28,9 +28,14 @@
   },
   "scripts": {
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.ts\" \"scripts/**/*.ts\" \"*.json\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"scripts/**/*.ts\" \"*.json\"",
+    "verify": "npm run typecheck && npm run format:check && npm run build",
     "start": "node dist/index.js",
     "dev": "tsc --watch",
-    "setup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-config.ps1"
+    "setup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-config.ps1",
+    "prepare": "node -e \"try{require('child_process').execSync('git config core.hooksPath .githooks',{stdio:'ignore'})}catch(e){}\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
@@ -44,6 +49,7 @@
   "devDependencies": {
     "@types/adm-zip": "^0.5.7",
     "@types/node": "^22.10.0",
+    "prettier": "^3.3.3",
     "typescript": "^5.7.0"
   }
 }

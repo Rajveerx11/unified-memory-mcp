@@ -69,7 +69,9 @@ export class OllamaCloudProvider implements LLMProvider {
     if (ids.length === 0) {
       return { ok: true };
     }
-    const found = ids.some((id) => id === this.cfg.model || id.startsWith(`${this.cfg.model}:`) || id.startsWith(`${this.cfg.model}-`));
+    const found = ids.some(
+      (id) => id === this.cfg.model || id.startsWith(`${this.cfg.model}:`) || id.startsWith(`${this.cfg.model}-`),
+    );
     if (!found) {
       return {
         ok: false,

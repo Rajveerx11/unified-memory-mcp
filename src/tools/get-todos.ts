@@ -9,7 +9,10 @@ export const getTodosTool = {
     status: z.enum(["pending", "completed", "all"]).optional(),
     source: z.enum(["obsidian", "claudecode", "memory", "all"]).optional(),
   },
-  handler: async (args: { status?: "pending" | "completed" | "all"; source?: "obsidian" | "claudecode" | "memory" | "all" }) => {
+  handler: async (args: {
+    status?: "pending" | "completed" | "all";
+    source?: "obsidian" | "claudecode" | "memory" | "all";
+  }) => {
     const state = dataStore.getState();
     const status = args.status ?? "all";
     const source = args.source ?? "all";

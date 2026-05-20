@@ -10,12 +10,14 @@ export const getDashboardDataTool = {
     const synthesis = state.synthesis;
 
     const obsidianTodos = state.rawSources.obsidian
-      .flatMap((n) => n.todos.map((t) => ({
-        text: t.text,
-        source: "obsidian" as const,
-        status: (t.done ? "completed" : "pending") as "pending" | "completed",
-        project: n.title,
-      })))
+      .flatMap((n) =>
+        n.todos.map((t) => ({
+          text: t.text,
+          source: "obsidian" as const,
+          status: (t.done ? "completed" : "pending") as "pending" | "completed",
+          project: n.title,
+        })),
+      )
       .filter((t) => t.status === "pending");
 
     const synthesisTodos = (synthesis?.todos ?? []).filter((t) => t.status === "pending" && t.source !== "obsidian");

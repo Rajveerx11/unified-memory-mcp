@@ -12,19 +12,21 @@ export const switchProviderTool = {
   handler: async (args: { provider: "ollama" | "ollama-cloud" | "anthropic"; model?: string }) => {
     const result = await llmRegistry.switchTo(args.provider, args.model);
     return {
-      content: [{
-        type: "text" as const,
-        text: JSON.stringify(
-          {
-            switched: result.ok,
-            reason: result.reason,
-            activeProvider: llmRegistry.getStatus(),
-            requested: result.provider,
-          },
-          null,
-          2,
-        ),
-      }],
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              switched: result.ok,
+              reason: result.reason,
+              activeProvider: llmRegistry.getStatus(),
+              requested: result.provider,
+            },
+            null,
+            2,
+          ),
+        },
+      ],
       isError: !result.ok,
     };
   },

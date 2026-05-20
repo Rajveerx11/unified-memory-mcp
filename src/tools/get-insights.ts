@@ -9,14 +9,20 @@ export const getInsightsTool = {
     const state = dataStore.getState();
     const insights = state.synthesis?.insights ?? [];
     return {
-      content: [{
-        type: "text" as const,
-        text: JSON.stringify({
-          insights,
-          synthesisAvailable: state.synthesis !== null,
-          generatedAt: state.synthesis?.generatedAt ?? null,
-        }, null, 2),
-      }],
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              insights,
+              synthesisAvailable: state.synthesis !== null,
+              generatedAt: state.synthesis?.generatedAt ?? null,
+            },
+            null,
+            2,
+          ),
+        },
+      ],
     };
   },
 };

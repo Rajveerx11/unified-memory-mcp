@@ -37,7 +37,9 @@ async function main(): Promise<void> {
   ]);
 
   const state = dataStore.getState();
-  console.log(`Sources: ${state.rawSources.claudeCode.length} cc sessions, ${state.rawSources.obsidian.length} obsidian notes, ${state.rawSources.memory.length} memory exports`);
+  console.log(
+    `Sources: ${state.rawSources.claudeCode.length} cc sessions, ${state.rawSources.obsidian.length} obsidian notes, ${state.rawSources.memory.length} memory exports`,
+  );
 
   console.log("Running thinking layer...");
   const t0 = Date.now();

@@ -28,13 +28,16 @@ export const getProjectsTool = {
 
     if (args.filter) {
       const f = args.filter.toLowerCase();
-      projects = projects.filter(
-        (p) => p.name.toLowerCase().includes(f) || p.status.toLowerCase().includes(f),
-      );
+      projects = projects.filter((p) => p.name.toLowerCase().includes(f) || p.status.toLowerCase().includes(f));
     }
 
     return {
-      content: [{ type: "text" as const, text: JSON.stringify({ projects, synthesisAvailable: state.synthesis !== null }, null, 2) }],
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify({ projects, synthesisAvailable: state.synthesis !== null }, null, 2),
+        },
+      ],
     };
   },
 };

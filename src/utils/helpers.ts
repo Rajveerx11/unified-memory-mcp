@@ -43,7 +43,10 @@ export async function safeReadStream(filePath: string, onLine: (line: string) =>
 }
 
 export function pathExists(p: string): Promise<boolean> {
-  return fs.stat(p).then(() => true).catch(() => false);
+  return fs
+    .stat(p)
+    .then(() => true)
+    .catch(() => false);
 }
 
 export async function listDir(p: string): Promise<string[]> {
@@ -56,9 +59,51 @@ export async function listDir(p: string): Promise<string[]> {
 
 export function tokenize(text: string): string[] {
   const stop = new Set([
-    "the","a","an","is","are","was","were","in","on","at","to","for","of","and","or","but",
-    "not","with","this","that","it","be","as","by","from","have","has","had","do","does","did",
-    "will","would","could","should","may","might","can","i","my","me","we","our","you","your",
+    "the",
+    "a",
+    "an",
+    "is",
+    "are",
+    "was",
+    "were",
+    "in",
+    "on",
+    "at",
+    "to",
+    "for",
+    "of",
+    "and",
+    "or",
+    "but",
+    "not",
+    "with",
+    "this",
+    "that",
+    "it",
+    "be",
+    "as",
+    "by",
+    "from",
+    "have",
+    "has",
+    "had",
+    "do",
+    "does",
+    "did",
+    "will",
+    "would",
+    "could",
+    "should",
+    "may",
+    "might",
+    "can",
+    "i",
+    "my",
+    "me",
+    "we",
+    "our",
+    "you",
+    "your",
   ]);
   return text
     .toLowerCase()

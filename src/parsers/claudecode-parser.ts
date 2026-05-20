@@ -146,9 +146,7 @@ export async function parseSingleFile(filePath: string, rootPath: string, archiv
     if (!summary) return;
 
     const current = dataStore.getState().rawSources.claudeCode;
-    const filtered = current.filter(
-      (s) => !(s.project === projDir && s.sessionId === summary.sessionId),
-    );
+    const filtered = current.filter((s) => !(s.project === projDir && s.sessionId === summary.sessionId));
     filtered.push(summary);
     await dataStore.setClaudeCodeSessions(filtered);
     await archiveJson(archiveRoot, "claudecode", `${projDir}__${summary.sessionId}`, summary);

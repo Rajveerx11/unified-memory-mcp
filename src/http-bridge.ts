@@ -26,9 +26,9 @@ const CORS_HEADERS: http.OutgoingHttpHeaders = {
 
 const VALID_PROVIDERS: ProviderKind[] = ["ollama", "ollama-cloud", "anthropic"];
 const PROVIDER_LABELS: Record<ProviderKind, string> = {
-  "ollama": "Local (Ollama)",
+  ollama: "Local (Ollama)",
   "ollama-cloud": "Cloud (Ollama)",
-  "anthropic": "Anthropic API",
+  anthropic: "Anthropic API",
 };
 const MAX_BODY_BYTES = 4096;
 
@@ -54,11 +54,15 @@ function isStoreEmpty(): boolean {
 function buildDataRoutes(): Map<string, DataHandler> {
   const m = new Map<string, DataHandler>();
   m.set("/api/dashboard", async () => callTool(getDashboardDataTool.handler, {}));
-  m.set("/api/projects", async (q) => callTool(getProjectsTool.handler as ToolHandler, { filter: q.get("filter") ?? undefined }));
-  m.set("/api/todos", async (q) => callTool(getTodosTool.handler as ToolHandler, {
-    status: q.get("status") ?? undefined,
-    source: q.get("source") ?? undefined,
-  }));
+  m.set("/api/projects", async (q) =>
+    callTool(getProjectsTool.handler as ToolHandler, { filter: q.get("filter") ?? undefined }),
+  );
+  m.set("/api/todos", async (q) =>
+    callTool(getTodosTool.handler as ToolHandler, {
+      status: q.get("status") ?? undefined,
+      source: q.get("source") ?? undefined,
+    }),
+  );
   m.set("/api/insights", async () => callTool(getInsightsTool.handler, {}));
   m.set("/api/patterns", async () => callTool(getThinkingPatternsTool.handler, {}));
   m.set("/api/summary", async (q) => {
@@ -70,10 +74,12 @@ function buildDataRoutes(): Map<string, DataHandler> {
     }
     return callTool(getWeeklySummaryTool.handler as ToolHandler, args);
   });
-  m.set("/api/search", async (q) => callTool(searchBrainTool.handler as ToolHandler, {
-    query: q.get("q") ?? "",
-    source: q.get("source") ?? undefined,
-  }));
+  m.set("/api/search", async (q) =>
+    callTool(searchBrainTool.handler as ToolHandler, {
+      query: q.get("q") ?? "",
+      source: q.get("source") ?? undefined,
+    }),
+  );
   m.set("/api/status", async () => callTool(getBrainStatusTool.handler, {}));
   return m;
 }
@@ -93,14 +99,18 @@ function listProviders(): unknown {
     },
     available: VALID_PROVIDERS.map((kind) => {
       const model =
-        kind === "ollama" ? cfg.llm.ollama.model
-        : kind === "ollama-cloud" ? cfg.llm.ollamaCloud.model
-        : cfg.llm.anthropic.model;
+        kind === "ollama"
+          ? cfg.llm.ollama.model
+          : kind === "ollama-cloud"
+            ? cfg.llm.ollamaCloud.model
+            : cfg.llm.anthropic.model;
       const requiresKey = kind === "ollama-cloud" || kind === "anthropic";
       const keyPresent =
-        kind === "ollama-cloud" ? !!cfg.llm.ollamaCloud.resolvedApiKey
-        : kind === "anthropic" ? !!cfg.llm.anthropic.resolvedApiKey
-        : true;
+        kind === "ollama-cloud"
+          ? !!cfg.llm.ollamaCloud.resolvedApiKey
+          : kind === "anthropic"
+            ? !!cfg.llm.anthropic.resolvedApiKey
+            : true;
       return {
         kind,
         label: PROVIDER_LABELS[kind],
@@ -127,8 +137,15 @@ async function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
     });
     req.on("end", () => {
       const text = Buffer.concat(chunks).toString("utf8").trim();
-      if (!text) { resolve({}); return; }
-      try { resolve(JSON.parse(text)); } catch { reject(new Error("invalid JSON body")); }
+      if (!text) {
+        resolve({});
+        return;
+      }
+      try {
+        resolve(JSON.parse(text));
+      } catch {
+        reject(new Error("invalid JSON body"));
+      }
     });
     req.on("error", reject);
   });
@@ -216,7 +233,10 @@ export function startHttpBridge(config: Config): RunningHttpBridge | null {
         return;
       }
       if (isStoreEmpty()) {
-        writeJson(res, 202, { status: "initializing", message: "Unified memory is still processing data. Try again in a minute." });
+        writeJson(res, 202, {
+          status: "initializing",
+          message: "Unified memory is still processing data. Try again in a minute.",
+        });
         log(202);
         return;
       }
@@ -244,7 +264,11 @@ export function startHttpBridge(config: Config): RunningHttpBridge | null {
 
   server.on("clientError", (err, socket) => {
     logger.warn("http-bridge", `client error: ${err?.message ?? err}`);
-    try { socket.destroy(); } catch { /* noop */ }
+    try {
+      socket.destroy();
+    } catch {
+      /* noop */
+    }
   });
 
   server.listen(config.httpBridgePort, "127.0.0.1");

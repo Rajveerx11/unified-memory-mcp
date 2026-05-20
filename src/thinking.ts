@@ -61,10 +61,20 @@ function tierAndTrim(state: BrainState): AggregatedInput {
     if (t >= sevenDays) {
       const full = { project: s.project, sessionId: s.sessionId, lastTimestamp: s.lastTimestamp, turns };
       if (tryAdd("claudeCodeRecent", full)) continue;
-      const snippet = { project: s.project, sessionId: s.sessionId, lastTimestamp: s.lastTimestamp, snippet: turns.slice(0, 2000) };
+      const snippet = {
+        project: s.project,
+        sessionId: s.sessionId,
+        lastTimestamp: s.lastTimestamp,
+        snippet: turns.slice(0, 2000),
+      };
       tryAdd("claudeCodeRecent", snippet);
     } else if (t >= thirtyDays) {
-      const snippet = { project: s.project, sessionId: s.sessionId, lastTimestamp: s.lastTimestamp, snippet: turns.slice(0, 400) };
+      const snippet = {
+        project: s.project,
+        sessionId: s.sessionId,
+        lastTimestamp: s.lastTimestamp,
+        snippet: turns.slice(0, 400),
+      };
       tryAdd("claudeCodeMid", snippet);
     }
   }
@@ -77,7 +87,13 @@ function tierAndTrim(state: BrainState): AggregatedInput {
     if (t >= fourteenDays) {
       const full = { path: n.path, title: n.title, tags: n.tags, todos: n.todos, content: n.fullText };
       if (tryAdd("obsidianRecent", full)) continue;
-      const snippet = { path: n.path, title: n.title, tags: n.tags, todos: n.todos, snippet: n.fullText.slice(0, 1000) };
+      const snippet = {
+        path: n.path,
+        title: n.title,
+        tags: n.tags,
+        todos: n.todos,
+        snippet: n.fullText.slice(0, 1000),
+      };
       tryAdd("obsidianRecent", snippet);
     } else {
       tryAdd("obsidianOld", { path: n.path, title: n.title, tags: n.tags, snippet: n.fullText.slice(0, 200) });
@@ -139,7 +155,10 @@ CRITICAL: Your previous response was not valid JSON. Output ONLY the JSON object
 function tryParseJson(text: string): Synthesis | null {
   let cleaned = text.trim();
   if (cleaned.startsWith("```")) {
-    cleaned = cleaned.replace(/^```[a-zA-Z]*\n?/, "").replace(/```\s*$/, "").trim();
+    cleaned = cleaned
+      .replace(/^```[a-zA-Z]*\n?/, "")
+      .replace(/```\s*$/, "")
+      .trim();
   }
   const firstBrace = cleaned.indexOf("{");
   const lastBrace = cleaned.lastIndexOf("}");
@@ -170,9 +189,7 @@ export async function runThinkingLayer(_config: Config): Promise<Synthesis | nul
 
   const state = dataStore.getState();
   const totalItems =
-    state.rawSources.claudeCode.length +
-    state.rawSources.obsidian.length +
-    state.rawSources.memory.length;
+    state.rawSources.claudeCode.length + state.rawSources.obsidian.length + state.rawSources.memory.length;
   if (totalItems === 0) {
     logger.info("thinking", "no source data yet — skipping synthesis");
     return null;
@@ -198,13 +215,19 @@ export async function runThinkingLayer(_config: Config): Promise<Synthesis | nul
         return synth;
       }
       lastErr = new Error(`attempt ${attempt + 1}: response was not valid JSON`);
-      logger.warn("thinking", `${provider.kind} returned non-JSON on attempt ${attempt + 1}, retrying with stricter prompt`);
+      logger.warn(
+        "thinking",
+        `${provider.kind} returned non-JSON on attempt ${attempt + 1}, retrying with stricter prompt`,
+      );
     } catch (err: any) {
       lastErr = err;
       logger.warn("thinking", `attempt ${attempt + 1} failed: ${err?.message ?? err}`);
     }
   }
 
-  logger.error("thinking", `synthesis failed after ${prompts.length} attempts: ${(lastErr as any)?.message ?? lastErr}`);
+  logger.error(
+    "thinking",
+    `synthesis failed after ${prompts.length} attempts: ${(lastErr as any)?.message ?? lastErr}`,
+  );
   return null;
 }

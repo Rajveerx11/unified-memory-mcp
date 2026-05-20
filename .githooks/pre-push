@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Pre-push guardrail. Blocks push when verification fails.
+# Runs: typecheck → format:check → build.
+# Bypass (NOT RECOMMENDED): git push --no-verify
+set -e
+
+# Skip when no commits being pushed (e.g. branch deletion).
+if [ -z "$(git log @{u}..HEAD 2>/dev/null)" ]; then
+  exit 0
+fi
+
+echo "[pre-push] running verification pipeline (typecheck, format:check, build)..."
+echo "[pre-push] bypass with --no-verify only in genuine emergencies"
+
+npm run verify
+
+echo "[pre-push] all checks passed"

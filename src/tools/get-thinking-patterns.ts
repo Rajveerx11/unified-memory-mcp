@@ -9,14 +9,21 @@ export const getThinkingPatternsTool = {
     const state = dataStore.getState();
     const patterns = state.synthesis?.thinkingPatterns ?? [];
     return {
-      content: [{
-        type: "text" as const,
-        text: JSON.stringify({
-          patterns,
-          synthesisAvailable: state.synthesis !== null,
-          note: state.synthesis === null ? "Thinking layer has not run yet (likely no API key or no data)." : undefined,
-        }, null, 2),
-      }],
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              patterns,
+              synthesisAvailable: state.synthesis !== null,
+              note:
+                state.synthesis === null ? "Thinking layer has not run yet (likely no API key or no data)." : undefined,
+            },
+            null,
+            2,
+          ),
+        },
+      ],
     };
   },
 };

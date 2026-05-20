@@ -71,9 +71,15 @@ class Logger {
     }
   }
 
-  info(module: string, msg: string): void { this.write("info", module, msg); }
-  warn(module: string, msg: string): void { this.write("warn", module, msg); }
-  error(module: string, msg: string): void { this.write("error", module, msg); }
+  info(module: string, msg: string): void {
+    this.write("info", module, msg);
+  }
+  warn(module: string, msg: string): void {
+    this.write("warn", module, msg);
+  }
+  error(module: string, msg: string): void {
+    this.write("error", module, msg);
+  }
 
   async close(): Promise<void> {
     if (this.stream) {

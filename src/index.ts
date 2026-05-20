@@ -66,21 +66,34 @@ async function printStartupHealth(config: Config): Promise<void> {
   logger.info("startup", line);
   logger.info("startup", "Unified Memory MCP Server v1.0.0");
   logger.info("startup", line);
-  logger.info("startup", `Claude Code logs:  ${config.claudeCodeLogsPath} (${cc.projects} project dirs, ${cc.sessions} session files)`);
-  logger.info("startup", `Memory exports:    ${config.memoryExportPath} (${memCount === 0 ? "empty — waiting for first export" : `${memCount} files`})`);
+  logger.info(
+    "startup",
+    `Claude Code logs:  ${config.claudeCodeLogsPath} (${cc.projects} project dirs, ${cc.sessions} session files)`,
+  );
+  logger.info(
+    "startup",
+    `Memory exports:    ${config.memoryExportPath} (${memCount === 0 ? "empty — waiting for first export" : `${memCount} files`})`,
+  );
   if (obCount === null) {
-    logger.info("startup", `Obsidian vault:    ${config.obsidianVaultPath} (NOT FOUND — skipping, set path in config.json)`);
+    logger.info(
+      "startup",
+      `Obsidian vault:    ${config.obsidianVaultPath} (NOT FOUND — skipping, set path in config.json)`,
+    );
   } else {
     logger.info("startup", `Obsidian vault:    ${config.obsidianVaultPath} (${obCount} markdown files)`);
   }
   logger.info("startup", `Archive:           ${config.archivePath} (last updated ${state.lastUpdated})`);
   const provStatus = llmRegistry.getStatus();
-  const provLabel = provStatus.kind === "noop"
-    ? "none — synthesis disabled"
-    : `${provStatus.kind} (${provStatus.model})${provStatus.kind === "ollama" ? " — local" : ""}`;
+  const provLabel =
+    provStatus.kind === "noop"
+      ? "none — synthesis disabled"
+      : `${provStatus.kind} (${provStatus.model})${provStatus.kind === "ollama" ? " — local" : ""}`;
   logger.info("startup", `LLM provider:      ${provLabel}`);
   logger.info("startup", `File watchers:     ${config.watchEnabled ? "active (3 sources)" : "disabled"}`);
-  logger.info("startup", `HTTP bridge:       ${config.httpBridgeEnabled ? `active on http://localhost:${config.httpBridgePort}` : "disabled"}`);
+  logger.info(
+    "startup",
+    `HTTP bridge:       ${config.httpBridgeEnabled ? `active on http://localhost:${config.httpBridgePort}` : "disabled"}`,
+  );
   logger.info("startup", line);
   logger.info("startup", "MCP server ready on stdio. Waiting for connections...");
 }
@@ -102,7 +115,7 @@ async function main(): Promise<void> {
         `Copy the example file and edit paths for your machine:\n` +
         `  cp config.example.json config.json\n\n` +
         `Or set UNIFIED_MEMORY_CONFIG to a custom config file path.\n` +
-        `Example template: ${example}`
+        `Example template: ${example}`,
     );
     process.exit(1);
   }
@@ -169,6 +182,10 @@ async function main(): Promise<void> {
 
 main().catch(async (err: any) => {
   console.error("fatal:", err?.stack ?? err);
-  try { await logger.close(); } catch { /* noop */ }
+  try {
+    await logger.close();
+  } catch {
+    /* noop */
+  }
   process.exit(1);
 });

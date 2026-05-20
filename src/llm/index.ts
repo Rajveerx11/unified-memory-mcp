@@ -32,9 +32,7 @@ class LLMRegistry {
       if (check.ok) {
         this.active = p;
         this.lastSwitchAt = new Date().toISOString();
-        this.lastSwitchReason = kind === preferred
-          ? "config default"
-          : `fallback from ${firstKind} (${firstReason})`;
+        this.lastSwitchReason = kind === preferred ? "config default" : `fallback from ${firstKind} (${firstReason})`;
         logger.info("llm", `LLM Provider: ${p.kind} (${p.model})${localTag(p.kind)}`);
         return p;
       }
@@ -98,7 +96,10 @@ class LLMRegistry {
     };
   }
 
-  async switchTo(kind: ProviderKind, modelOverride?: string): Promise<{ ok: boolean; reason: string; provider: { kind: string; model: string } }> {
+  async switchTo(
+    kind: ProviderKind,
+    modelOverride?: string,
+  ): Promise<{ ok: boolean; reason: string; provider: { kind: string; model: string } }> {
     if (!this.config) throw new Error("registry not initialized");
     const candidate = this.build(kind, modelOverride);
     const check = await candidate.isAvailable();

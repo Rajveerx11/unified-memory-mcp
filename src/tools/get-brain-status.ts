@@ -56,8 +56,7 @@ export const getBrainStatusTool = {
     const obCount = await countObsidian(config.obsidianVaultPath);
 
     const totalTodos =
-      state.rawSources.obsidian.reduce((sum, n) => sum + n.todos.length, 0) +
-      (state.synthesis?.todos.length ?? 0);
+      state.rawSources.obsidian.reduce((sum, n) => sum + n.todos.length, 0) + (state.synthesis?.todos.length ?? 0);
 
     const status = {
       provider: {
