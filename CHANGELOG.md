@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- README.md — document AGENTS.md, verify pipeline, reliability behavior, multi-client MCP setup, smoke test, and HTTP port conflict handling.
+- CLAUDE.md and CONTRIBUTING.md — align with CI verify job, Prettier, pre-push hook, and AGENTS.md cross-links.
+
 ### Added
 
 - `AGENTS.md` — zero-touch MCP setup contract for Claude Desktop, Claude Code, Cursor, Codex, Antigravity, Hermes, PI Agent, and generic MCP clients.

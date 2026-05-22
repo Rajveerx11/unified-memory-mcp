@@ -5,16 +5,17 @@ Thank you for your interest in contributing. This project welcomes bug reports, 
 ## Getting started
 
 1. Fork the repository and clone your fork.
-2. Install dependencies and build:
+2. Install dependencies and verify:
    ```powershell
    npm install
-   npm run build
+   npm run verify
    ```
-3. Copy the example configuration and adjust paths:
+3. For automated MCP client wiring (agents), see [AGENTS.md](AGENTS.md).
+4. Copy the example configuration and adjust paths:
    ```powershell
    Copy-Item config.example.json config.json
    ```
-4. Run the server locally:
+5. Run the server locally:
    ```powershell
    .\scripts\start.ps1
    ```

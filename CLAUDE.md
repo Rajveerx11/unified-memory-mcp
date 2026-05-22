@@ -4,23 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-- `npm install` — install deps (Node.js 20+ required; CI uses Node 22 on Windows).
-- `npm run build` — TypeScript compile to `dist/` via `tsc` (ES modules, strict). This is the only check CI runs.
+- `npm install` — install deps (Node.js 20+ required; CI uses Node 22 on Windows). Runs `prepare`, which sets `git config core.hooksPath .githooks` so the pre-push hook is active.
+- `npm run verify` — **required before push**: `typecheck` → `format:check` → `build`. Same pipeline runs in CI and in `.githooks/pre-push`.
+- `npm run typecheck` — `tsc --noEmit`.
+- `npm run format` / `npm run format:check` — Prettier 3 against `src/**/*.ts`, `scripts/**/*.ts`, and root `*.json` (see `.prettierrc.json`; markdown is excluded).
+- `npm run build` — TypeScript compile to `dist/` via `tsc` (ES modules, strict).
 - `npm run dev` — `tsc --watch`.
 - `npm start` — `node dist/index.js`. Requires `config.json` next to repo root or `UNIFIED_MEMORY_CONFIG` env var pointing at one.
 - `.\scripts\start.ps1` — foreground run (asserts `dist/index.js` exists).
 - `.\scripts\setup-config.ps1` (or `npm run setup`) — bootstrap `config.json` from `config.example.json`.
-- `.\scripts\install-startup.ps1` / `uninstall-startup.ps1` — Scheduled Task install for hidden logon start; `stop.ps1` kills it.
-- Ad-hoc parser/synthesis scripts: `node --loader ts-node/esm scripts/test-parsers.ts` and `scripts/run-thinking.ts` (not wired into `package.json`; expect to run via tsx/ts-node). They reuse `src/` and require a valid `config.json`.
+- `.\scripts\install-startup.ps1` / `uninstall-startup.ps1` — Scheduled Task install for hidden logon start; `stop.ps1` kills running instances. Do not combine with MCP-client-spawned servers (port/state conflict).
+- Ad-hoc parser/synthesis scripts: `scripts/test-parsers.ts` and `scripts/run-thinking.ts` (not wired into `package.json`; run via `npx tsx` or similar). They reuse `src/` and require a valid `config.json`.
 
-No test suite or linter is configured. "Tests" means running the parser script above against real local data.
+There is no Jest/Vitest suite. Validation is `npm run verify` plus optional manual runs of the parser scripts against real local data. End-user / agent setup steps live in **`AGENTS.md`** (smoke test, per-client MCP registration, verification checklist).
 
 ## Architecture
 
 Long-running Node process exposing a personal-knowledge MCP server. Two transports run in the same process:
 
 1. **MCP stdio server** (`src/server.ts`) — registers nine tools (`get_projects`, `get_thinking_patterns`, `get_todos`, `get_insights`, `get_weekly_summary`, `search_brain`, `get_dashboard_data`, `get_brain_status`, `switch_provider`). Consumers: Claude Desktop, Claude Code, Cursor.
-2. **HTTP bridge** (`src/http-bridge.ts`) — read-only JSON API on `localhost:3001` for local dashboards. CORS pinned to `http://localhost:3000`. Returns `202 { status: "initializing" }` until the first scan finishes. Disable with `httpBridgeEnabled: false`.
+2. **HTTP bridge** (`src/http-bridge.ts`) — read-only JSON API on `localhost:3001` (or `httpBridgePort`) for local dashboards. CORS pinned to `http://localhost:3000`. Returns `202 { status: "initializing" }` until the first scan finishes. Disable with `httpBridgeEnabled: false`. On `EADDRINUSE`, logs and continues with the bridge off for that run.
 
 ### Data flow
 
